@@ -20,6 +20,17 @@ const MIRROR_HOST = process.env.MIRROR_HOST || "asurascans.app";
 // ---------------------------------------------------------------------------
 app.use(compression());
 
+// Allow credentials & CORS for API calls from the mirror domain
+app.use("/api", (req, res, next) => {
+  const allowedOrigin = `${req.headers["x-forwarded-proto"] || req.protocol}://${MIRROR_HOST || req.headers.host}`;
+  res.setHeader("access-control-allow-origin", allowedOrigin);
+  res.setHeader("access-control-allow-credentials", "true");
+  res.setHeader("access-control-allow-headers", "content-type, authorization, x-requested-with");
+  res.setHeader("access-control-allow-methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 // Health-check (useful on Railway / Render)
 app.get("/healthz", (_req, res) => res.send("ok"));
 
@@ -44,6 +55,24 @@ app.get(["/sitemap.xml", "/sitemap*.xml", "/sitemap-index.xml"], async (req, res
   } catch (err) {
     console.error("[sitemap]", err.message);
     res.status(502).send("Sitemap fetch failed");
+  }
+});
+
+// ---------------------------------------------------------------------------
+// API proxy — forward /api/* requests to api.asurascans.com
+// ---------------------------------------------------------------------------
+const API_ORIGIN = process.env.API_ORIGIN_HOST || "api.asurascans.com";
+
+app.all("/api/*", async (req, res) => {
+  try {
+    const mirror = MIRROR_HOST || req.headers.host;
+    const proto = req.headers["x-forwarded-proto"] || req.protocol;
+    await proxyAndRewrite(req, res, { origin: API_ORIGIN, mirror, proto });
+  } catch (err) {
+    console.error("[api-proxy]", err.message);
+    if (!res.headersSent) {
+      res.status(502).send("Bad Gateway");
+    }
   }
 });
 
