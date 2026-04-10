@@ -1,0 +1,13 @@
+[build]
+  command = "npm install"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[start]
+  command = "node server.js"
+
+[env]
+  PORT = "3000"
+  # MIRROR_HOST = "your-domain.com"
+  # ORIGIN_HOST = "asurascans.com"

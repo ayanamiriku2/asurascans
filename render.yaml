@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: asurascans-mirror
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: ORIGIN_HOST
+        value: asurascans.com
+      # - key: MIRROR_HOST
+      #   value: your-custom-domain.com
